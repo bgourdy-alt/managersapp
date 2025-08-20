@@ -1,0 +1,118 @@
+// Prisma schema complet
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  role      Role
+  manager   User?    @relation("ManagerSubordinates", fields: [managerId], references: [id])
+  managerId String?
+  subordinates User[] @relation("ManagerSubordinates")
+  absences  Absence[]
+  tasks     Task[]
+  workload  WorkloadItem[]
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  COLLABORATEUR
+}
+
+model Absence {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  start     DateTime
+  end       DateTime
+  status    String
+}
+
+model Client {
+  id          String   @id @default(uuid())
+  name        String
+  logoUrl     String?
+  contact     String
+  hasContract Boolean
+  orderSite   String?
+  notes       String?
+}
+
+model Task {
+  id        String   @id @default(uuid())
+  title     String
+  assignee  User?    @relation(fields: [assigneeId], references: [id])
+  assigneeId String?
+  status    String
+  dueAt     DateTime?
+  comments  String[]
+}
+
+model WorkloadItem {
+  id        String   @id @default(uuid())
+  subject   String
+  estHours  Int
+  status    String
+  userId    String
+  user      User @relation(fields: [userId], references: [id])
+}
+
+model Item {
+  id        String   @id @default(uuid())
+  ref       String   @unique
+  label     String
+  stock     Int
+  minThreshold Int
+  location  String?
+  requests  ReorderRequest[]
+}
+
+model ReorderRequest {
+  id        String   @id @default(uuid())
+  itemId    String
+  item      Item @relation(fields: [itemId], references: [id])
+  qty       Int
+  estCost   Float
+  requesterId String
+  requester User @relation(fields: [requesterId], references: [id])
+  status    String
+  steps     ApprovalStep[]
+}
+
+model ApprovalRule {
+  id        String   @id @default(uuid())
+  level     Int
+  minAmount Float
+  maxAmount Float
+  approverRole Role
+}
+
+model ApprovalStep {
+  id        String   @id @default(uuid())
+  requestId String
+  request   ReorderRequest @relation(fields: [requestId], references: [id])
+  level     Int
+  approverId String
+  approver  User @relation(fields: [approverId], references: [id])
+  delegatedToId String?
+  decision  String?
+  decidedAt DateTime?
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String
+  userId    String
+  payload   Json
+  readAt    DateTime?
+}
